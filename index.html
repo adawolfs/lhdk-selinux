@@ -4,7 +4,7 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-		<title>reveal.js</title>
+		<title>LKDH - SELinux</title>
 
 		<link rel="stylesheet" href="dist/reset.css">
 		<link rel="stylesheet" href="dist/reveal.css">
@@ -16,8 +16,691 @@
 	<body>
 		<div class="reveal">
 			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+				<section>
+					<section>
+						Un jueves normal en la vida del SRE ...
+					</section>
+					<section>
+						Se nos solicita exponer con NGINX una aplicacion en el server para los developers.
+					</section>
+					<section>
+						La aplicacion esta exponiendo un API REST en http://localhost:9090 y es necesario exponerla con NGINX en el puerto 8080
+					</section>
+					<section>
+						<p>
+							Informacion de acceso al server?
+						</p>
+						<p class="fragment">
+							<pre data-id="code-animation"><code class="hljs " data-trim ><script type="text/template">
+								$  ssh adawolfs@192.168.214.128
+							</script></code></pre>
+						</p>
+					</section>
+					<section>
+						Operative System
+						<pre data-id="code-animation"><code class="hljs " data-trim ><script type="text/template">
+							$ cat /etc/os-release
+							NAME="CentOS Stream"
+							VERSION="8"
+							ID="centos"
+							ID_LIKE="rhel fedora"
+							VERSION_ID="8"
+							PLATFORM_ID="platform:el8"
+							PRETTY_NAME="CentOS Stream 8"
+							ANSI_COLOR="0;31"
+							CPE_NAME="cpe:/o:centos:centos:8"
+							HOME_URL="https://centos.org/"
+							BUG_REPORT_URL="https://bugzilla.redhat.com/"
+							REDHAT_SUPPORT_PRODUCT="Red Hat Enterprise Linux 8"
+							REDHAT_SUPPORT_PRODUCT_VERSION="CentOS Stream"
+						</script></code></pre>
+					</section>
+					<section>
+						
+						Login as root
+						<pre data-id="code-animation"><code class="language-shell" data-trim ><script type="text/template">
+							$ sudo -i
+	
+							We trust you have received the usual lecture from the local System
+							Administrator. It usually boils down to these three things:
+	
+								#1) Respect the privacy of others.
+								#2) Think before you type.
+								#3) With great power comes great responsibility.
+						</script></code></pre>
+					</section>
+					<section>
+						Install required software
+						<pre data-id="code-animation"><code class="language-shell" data-trim ><script type="text/template">
+										# dnf install setools nginx podman -y
+						</script></code></pre>
+						
+					</section>
+					<section>
+						<pre data-id="code-animation"><code class="language-shell hljs"># curl localhost:9090 -v
+* Rebuilt URL to: localhost:9090/
+*   Trying ::1...
+* TCP_NODELAY set
+* connect to ::1 port 9090 failed: Connection refused
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to localhost (127.0.0.1) port 9090 (#0)
+> GET / HTTP/1.1
+> Host: localhost:9090
+> User-Agent: curl/7.61.1
+> Accept: */*
+>
+< HTTP/1.1 200 OK
+< Date: Thu, 24 Mar 2022 20:42:28 GMT
+< Content-Length: 6
+< Content-Type: text/plain; charset=utf-8
+<
+* Connection #0 to host localhost left intact
+LHDK8S
+						</code></pre>
+					</section>
+					<section>
+						Verificar si nginx esta instalado
+						<pre data-id="code-animation"><code class="language-shell hljs"># dnf list --installed | grep nginx
+nginx.x86_64                          1:1.14.1-9.module_el8.0.0+1060+3ab382d3  @appstream
+nginx-all-modules.noarch              1:1.14.1-9.module_el8.0.0+1060+3ab382d3  @appstream
+nginx-filesystem.noarch               1:1.14.1-9.module_el8.0.0+1060+3ab382d3  @appstream
+nginx-mod-http-image-filter.x86_64    1:1.14.1-9.module_el8.0.0+1060+3ab382d3  @appstream
+nginx-mod-http-perl.x86_64            1:1.14.1-9.module_el8.0.0+1060+3ab382d3  @appstream
+nginx-mod-http-xslt-filter.x86_64     1:1.14.1-9.module_el8.0.0+1060+3ab382d3  @appstream
+nginx-mod-mail.x86_64                 1:1.14.1-9.module_el8.0.0+1060+3ab382d3  @appstream
+nginx-mod-stream.x86_64               1:1.14.1-9.module_el8.0.0+1060+3ab382d3  @appstream
+													</code></pre>
+					</section>
+					<section>
+						Standard NGINX
+						<pre data-id="code-animation"><code class="language-shell hljs"># vim  /etc/nginx/conf.d/aplicacion.conf
+	server {
+		listen       8080 default_server;
+		listen       [::]:8080 default_server;
+		server_name  _;
+		
+	
+		# Load configuration files for the default server block.
+		include /etc/nginx/default.d/*.conf;
+	
+		location / {
+			proxy_pass http://localhost:9090;
+		}
+	
+		error_page 404 /404.html;
+			location = /40x.html {
+		}
+	
+		error_page 500 502 503 504 /50x.html;
+			location = /50x.html {
+		}
+	}
+						</code></pre>
+					</section>
+					<section>
+							Standard NGINX Error
+							<pre data-id="code-animation"><code class="hljs " data-trim ><script type="text/template">
+	$  curl localhost:8080
+					...
+					<p>Something has triggered missing webpage on your
+					website. This is the default error page for
+					<strong>nginx</strong> that is distributed with
+					Red Hat Enterprise Linux.  It is located
+					<tt>/usr/share/nginx/html/50x.html</tt></p>
+
+					<p>You should customize this error page for your own
+					site or edit the <tt>error_page</tt> directive in
+					the <strong>nginx</strong> configuration file
+					<tt>/etc/nginx/nginx.conf</tt>.</p>
+					...
+							</script></code></pre>
+					</section>
+					
+					<section>
+						Standard NGINX Access Log
+						<pre data-id="code-animation"><code class="hljs " data-trim ><script type="text/template">
+$  tail -f /var/log/nginx/error.log
+192.168.214.128 - - [24/Mar/2022:02:07:23 -0400] "GET / HTTP/1.1" 502 4020 "-" "curl/7.61.1" "-"
+						</script></code></pre>
+					</section>
+
+					<section>
+						Standard NGINX Error Log
+						<pre data-id="code-animation"><code class="hljs " data-trim ><script type="text/template">
+$  tail -f /var/log/nginx/error.log
+2022/03/24 02:07:23 [error] 37537#0: *4 no live upstreams while connecting to upstream, client: ::1, server: _, request: "GET / HTTP/1.1", upstream: "http://localhost/", host: "localhost:8080"
+2022/03/24 02:07:38 [crit] 37588#0: *1 connect() to 127.0.0.1:9090 failed (13: Permission denied) while connecting to upstream, client: ::1, server: _, request: "GET / HTTP/1.1", upstream: "http://127.0.0.1:9090/", host: "localhost:8080"
+2022/03/24 02:07:38 [crit] 37588#0: *1 connect() to [::1]:9090 failed (13: Permission denied) while connecting to upstream, client: ::1, server: _, request: "GET / HTTP/1.1", upstream: "http://[::1]:9090/", host: "localhost:8080"
+						</script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<p>
+							<h1 style="text-transform: none;">SELinux</h1>
+							<span class="fragment">
+								<h2 style="text-transform: none;">Para mortales</h2>
+							</span>
+						</p>
+						<p class="fragment">
+							Deja de desactivarlo!
+						</p>
+					</section>
+					<section>
+						REPITAN CONMIGO
+						<p class="fragment">
+							SELinux es un sistema basado en <b>ETIQUETAS</b>
+						</p>
+						<p class="fragment">
+							Cada proceso tiene una <b>ETIQUETA</b>
+						</p>
+						<p class="fragment">
+							Cada <b>Archivo, Directorio y Objeto</b> tiene una <b>ETIQUETA</b>
+						</p>
+						<p class="fragment">
+							Politicas controlan el acceso entre un proceso etiquetado y un objeto etiquetado
+						</p>
+						<p class="fragment">
+							El Kernel se encarga de hacer cumplir estas reglas
+						</p>
+
+					</section>
+					<section>
+						Recursos
+					</section>
+					<section>
+						<a href="https://people.redhat.com/duffy/selinux/selinux-coloring-book_A4-Stapled.pdf" target="_blank">Libro para colorear</a>
+					</section>
+					<section>
+						<iframe width="560" height="315" src="https://www.youtube.com/embed/Wv9kwlabdlo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+					</section>
+					<section>
+						<iframe width="560" height="315" src="https://www.youtube.com/embed/_WOKRaM-HI4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+					</section>
+					<section>
+						<iframe width="560" height="315" src="https://www.youtube.com/embed/rOGRTZm0cmE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+						<br>
+						<ul style="list-style: none;">
+							<li>
+								<a href="https://www.redhat.com/en/blog/generate-selinux-policies-containers-with-udica" target="_blank">Udica</a>
+							</li>
+							<li>
+								<a href="https://github.com/containers/udica" target="_blank">Repo</a>
+							</li>
+						</ul>
+					</section>
+					<section>
+						<ul style="list-style: none;">
+						<li>
+
+							<a href="https://docs.okd.io/3.11/install_config/persistent_storage/pod_security_context.html#selinuxoptions" target="_blank">Okd Selinux</a>
+						</li>
+						<li>
+
+							<a href="https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#assign-selinux-labels-to-a-container" target="_blank">k8s Selinux</a>
+						</li>
+						</ul>
+					</section>
+					<section>
+						<a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/selinux_users_and_administrators_guide/index">SELinux Documentation</a>
+					</section>
+				</section>
+				<section data-auto-animate>
+					<section>
+						<h2 style="text-transform: none;">Estados y modos de SELinux</h2>
+					</section>
+					<section>
+						<h3>
+							Enforcing
+						</h3>
+						<pre data-id="code-animation"><code class="language-shell" data-trim ><script type="text/template">
+							# getenforce
+							Enforcing
+						</script></code></pre>
+					</section>
+					<section>
+						<h3>
+							Permissive
+						</h3>
+						<pre data-id="code-animation"><code class="language-shell" data-trim ><script type="text/template">
+							# setenforce 0
+							# getenforce
+							Permissive
+						</script></code></pre>
+					</section>
+					<section>
+						<h3>
+							Enforcing
+						</h3>
+						<pre data-id="code-animation"><code class="language-shell" data-trim ><script type="text/template">
+							# setenforce 1
+							# getenforce
+							Enforcing
+						</script></code></pre>
+						
+					</section>
+					<section>
+						<h3>	
+							Enforce and Permissive by label
+						</h3>
+						<pre data-id="code-animation"><code class="language-shell" data-trim ><script type="text/template">
+							# semanage permissive -a httpd_t
+							# semanage permissive -d httpd_t
+						</script></code></pre>
+						
+					</section>
+					
+				</section>
+				<section>
+					<h1 style="text-transform: none;">Labels</h1>
+				</section>
+				<section>
+					<section data-auto-animate >
+						<h3 style="text-transform: none;">File labels</h3>
+						<pre data-id="code-animation"><code class="language-shell"><script type="text/template">
+							# ls -Z / | grep etc
+							system_u:object_r:etc_t:s0 etc
+						</script></code></pre>
+					</section>
+
+					<section data-auto-animate>
+						<h3 style="text-transform: none;">File labels</h3>
+						<pre data-id="code-animation"><code class="language-shell"><script type="text/template">
+							system_u:object_r:etc_t:s0
+						</script></code></pre>
+					</section>
+					<section data-auto-animate>
+							<h3 style="text-transform: none;">File labels</h3>
+							<pre data-id="code-animation"><code class="language-shell"><script type="text/template">
+					system_u    :    object_r    :    etc_t    :    s0
+					---------       ----------       -------       ----
+					User tag         Role tag       Type tag       Level
+							</script></code></pre>
+					</section>
+					<section>
+						<h3>semanage</h3>
+						<pre data-id="code-animation"><code class="language-shell"><script type="text/template">
+					# semanage fcontext -l | less
+						</script></code></pre>
+					</section>
+				</section>
+				<section data-auto-animate>
+					<section data-auto-animate>
+						<h3 style="text-transform: none;">Process Labels</h3>
+						<pre data-id="code-animation"><code class="language-shell"><script type="text/template">
+# ps -eZ | grep nginx
+system_u:system_r:httpd_t:s0      36181 ?        00:00:00 nginx
+system_u:system_r:httpd_t:s0      36182 ?        00:00:00 nginx
+						</script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section data-auto-animate>
+						<h3 style="text-transform: none;">Port Labels</h3>
+						<pre data-id="code-animation"><code class="language-shell"><script type="text/template">
+# semanage port -l | grep http
+http_cache_port_t              tcp      8080, 8118, 8123, 10001-10010
+http_cache_port_t              udp      3130
+http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
+pegasus_http_port_t            tcp      5988
+pegasus_https_port_t           tcp      5989
+					    </script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section data-auto-animate>
+						<h3 style="text-transform: none;">User Labels</h3>
+						<pre data-id="code-animation"><code class="language-shell"><script type="text/template">
+$ id -Z
+unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+					    </script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h1 style="text-transform: none;">Booleans</h1>
+					</section>
+					<section>
+						Booleans
+						<pre data-id="code-animation">
+							<code class="language-shell" data-line-numbers="|4-14|9">
+							<script type="text/template"># semanage boolean --list | grep httpd
+httpd_anon_write               (off  ,  off)  Allow httpd to anon write
+httpd_builtin_scripting        (on   ,   on)  Allow httpd to builtin scripting
+httpd_can_check_spam           (off  ,  off)  Allow httpd to can check spam
+httpd_can_connect_ftp          (off  ,  off)  Allow httpd to can connect ftp
+httpd_can_connect_ldap         (off  ,  off)  Allow httpd to can connect ldap
+httpd_can_connect_mythtv       (off  ,  off)  Allow httpd to can connect mythtv
+httpd_can_connect_zabbix       (off  ,  off)  Allow httpd to can connect zabbix
+httpd_can_network_connect      (off  ,  off)  Allow httpd to can network connect
+httpd_can_network_connect_cobbler (off  ,  off)  Allow httpd to can network connect cobbler
+httpd_can_network_connect_db   (off  ,  off)  Allow httpd to can network connect db
+httpd_can_network_memcache     (off  ,  off)  Allow httpd to can network memcache
+httpd_can_network_relay        (off  ,  off)  Allow httpd to can network relay
+httpd_can_sendmail             (off  ,  off)  Allow httpd to can sendmail
+httpd_dbus_avahi               (off  ,  off)  Allow httpd to dbus avahi
+httpd_dbus_sssd                (off  ,  off)  Allow httpd to dbus sssd
+httpd_dontaudit_search_dirs    (off  ,  off)  Allow httpd to dontaudit search dirs
+httpd_enable_cgi               (on   ,   on)  Allow httpd to enable cgi
+httpd_enable_ftp_server        (off  ,  off)  Allow httpd to enable ftp server
+httpd_enable_homedirs          (off  ,  off)  Allow httpd to enable homedirs
+httpd_execmem                  (off  ,  off)  Allow httpd to execmem
+httpd_graceful_shutdown        (off  ,  off)  Allow httpd to graceful shutdown
+httpd_manage_ipa               (off  ,  off)  Allow httpd to manage ipa
+httpd_mod_auth_ntlm_winbind    (off  ,  off)  Allow httpd to mod auth ntlm winbind
+httpd_mod_auth_pam             (off  ,  off)  Allow httpd to mod auth pam
+httpd_read_user_content        (off  ,  off)  Allow httpd to read user content
+httpd_run_ipa                  (off  ,  off)  Allow httpd to run ipa
+httpd_run_preupgrade           (off  ,  off)  Allow httpd to run preupgrade
+httpd_run_stickshift           (off  ,  off)  Allow httpd to run stickshift
+httpd_serve_cobbler_files      (off  ,  off)  Allow httpd to serve cobbler files
+httpd_setrlimit                (off  ,  off)  Allow httpd to setrlimit
+httpd_ssi_exec                 (off  ,  off)  Allow httpd to ssi exec
+httpd_sys_script_anon_write    (off  ,  off)  Allow httpd to sys script anon write
+httpd_tmp_exec                 (off  ,  off)  Allow httpd to tmp exec
+httpd_tty_comm                 (off  ,  off)  Allow httpd to tty comm
+httpd_unified                  (off  ,  off)  Allow httpd to unified
+httpd_use_cifs                 (off  ,  off)  Allow httpd to use cifs
+httpd_use_fusefs               (off  ,  off)  Allow httpd to use fusefs
+httpd_use_gpg                  (off  ,  off)  Allow httpd to use gpg
+httpd_use_nfs                  (off  ,  off)  Allow httpd to use nfs
+httpd_use_opencryptoki         (off  ,  off)  Allow httpd to use opencryptoki
+httpd_use_openstack            (off  ,  off)  Allow httpd to use openstack
+httpd_use_sasl                 (off  ,  off)  Allow httpd to use sasl
+httpd_verify_dns               (off  ,  off)  Allow httpd to verify dns
+						</script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						
+						<h2 style="text-transform: none;">NGINX Scenarios</h2>
+					</section>
+					<section>
+						Standard NGINX
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template"># vim  /etc/nginx/conf.d/working.conf
+server {
+	listen       8080 default_server;
+	listen       [::]:8080 default_server;
+	server_name  _;
+	root        /usr/share/nginx/html;
+	
+
+	# Load configuration files for the default server block.
+	include /etc/nginx/default.d/*.conf;
+
+	location / {
+	}
+
+	error_page 404 /404.html;
+		location = /40x.html {
+	}
+
+	error_page 500 502 503 504 /50x.html;
+		location = /50x.html {
+	}
+}
+						</script></code></pre>
+					</section>
+					
+				
+					<section>
+						Standard NGINX and Serving Content at /html
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template"># vim  /etc/nginx/conf.d/lhdk.conf
+server {
+	listen       8080 default_server;
+	listen       [::]:8080 default_server;
+	server_name  _;
+	root        /html;
+	
+
+	# Load configuration files for the default server block.
+	include /etc/nginx/default.d/*.conf;
+
+	location / {
+	}
+
+	error_page 404 /404.html;
+		location = /40x.html {
+	}
+
+	error_page 500 502 503 504 /50x.html;
+		location = /50x.html {
+	}
+}
+						</script></code></pre>
+					</section>
+					<section>
+						<p>Standard NGINX Binding 8181</p> 
+						<p>and Serving Content at /html</p>
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template"># vim  /etc/nginx/conf.d/lhdk.conf
+server {
+	listen       8181 default_server;
+	listen       [::]:8181 default_server;
+	server_name  _;
+	root        /html;
+	
+
+	# Load configuration files for the default server block.
+	include /etc/nginx/default.d/*.conf;
+
+	location / {
+	}
+
+	error_page 404 /404.html;
+		location = /40x.html {
+	}
+
+	error_page 500 502 503 504 /50x.html;
+		location = /50x.html {
+	}
+}
+						</script></code></pre>
+					</section>
+					<section>
+						<p>Standard NGINX Binding 8181</p> 
+						<p>and Proxy Pass to 9090</p>
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template"># vim  /etc/nginx/conf.d/lhdk.conf
+server {
+	listen       8181 default_server;
+	listen       [::]:8181 default_server;
+	server_name  _;
+	
+
+	# Load configuration files for the default server block.
+	include /etc/nginx/default.d/*.conf;
+
+	location / {
+		proxy_pass http://localhost:9090;
+	}
+
+	error_page 404 /404.html;
+		location = /40x.html {
+	}
+
+	error_page 500 502 503 504 /50x.html;
+		location = /50x.html {
+	}
+}
+						</script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2 style="text-transform: none;">SELinux Troubleshooting</h2>
+					</section>
+					
+					<section>
+						SELinux Troubleshooting
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template"># journalctl -xeft setroubleshoot
+Mar 24 01:22:47 localhost.localdomain setroubleshoot[37383]: AnalyzeThread.run(): Cancel pending alarm
+Mar 24 01:22:48 localhost.localdomain setroubleshoot[37383]: SELinux is preventing /usr/sbin/nginx from name_bind access on the tcp_socket port 8081. For complete SELinux messages run: sealert -l 37526149-6de6-4d6b-8717-a7fda1e1773c
+Mar 24 01:22:48 localhost.localdomain setroubleshoot[37383]: SELinux is preventing /usr/sbin/nginx from name_bind access on the tcp_socket port 8081.
+
+																*****  Plugin catchall (100. confidence) suggests   **************************
+
+																If you believe that nginx should be allowed name_bind access on the port 8081 tcp_socket by default.
+																Then you should report this as a bug.
+																You can generate a local policy module to allow this access.
+																Do
+																allow this access for now by executing:
+																	# ausearch -c 'nginx' --raw | audit2allow -M my-nginx
+																	# semodule -X 300 -i my-nginx.pp
+
+Mar 24 01:22:48 localhost.localdomain setroubleshoot[37383]: AnalyzeThread.run(): Set alarm timeout to 10
+
+						</script></code></pre>
+					</section>
+					<section>
+						SELinux Troubleshooting
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template"># ausearch -c 'nginx' --raw
+type=AVC msg=audit(1647810843.491:248): avc:  denied  { name_bind } for  pid=28122 comm="nginx" src=9090 scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:object_r:websm_port_t:s0 tclass=tcp_socket permissive=0                                                                                                                                                                type=SYSCALL msg=audit(1647810843.491:248): arch=c000003e syscall=49 success=no exit=-13 a0=f a1=55a2c9253f48 a2=10 a3=7ffd5429bd00 items=0 ppid=1 pid=28122 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="nginx" exe="/usr/sbin/nginx" subj=system_u:system_r:httpd_t:s0 key=(null)ARCH=x86_64 SYSCALL=bind AUID="unset" UID="root" GID="root" EUID="root" SUID="root" FSUID="root" EGID="root" SGID="root" FSGID="root"
+type=PROCTITLE msg=audit(1647810843.491:248): proctitle=6E67696E783A206D61737465722070726F63657373202F7573722F7362696E2F6E67696E78
+type=AVC msg=audit(1647810887.920:249): avc:  denied  { name_bind } for  pid=28122 comm="nginx" src=9090 scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:object_r:websm_port_t:s0 tclass=tcp_socket permissive=0
+type=SYSCALL msg=audit(1647810887.920:249): arch=c000003e syscall=49 success=no exit=-13 a0=f a1=55a2c9228ec8 a2=10 a3=7ffd5429bd00 items=0 ppid=1 pid=28122 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="nginx" exe="/usr/sbin/nginx" subj=system_u:system_r:httpd_t:s0 key=(null)ARCH=x86_64 SYSCALL=bind AUID="unset" UID="root" GID="root" EUID="root" SUID="root" FSUID="root" EGID="root" SGID="root" FSGID="root"
+type=PROCTITLE msg=audit(1647810887.920:249): proctitle=6E67696E783A206D61737465722070726F63657373202F7573722F7362696E2F6E67696E78
+type=AVC msg=audit(1647810899.411:250): avc:  denied  { name_bind } for  pid=28122 comm="nginx" src=9090 scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:object_r:websm_port_t:s0 tclass=tcp_socket permissive=0
+						</script></code></pre>
+					</section>
+					<section>
+						SELinux Troubleshooting
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template"># sesearch -A -s httpd_t -t http_port_t
+allow httpd_t http_port_t:tcp_socket name_bind;
+allow httpd_t http_port_t:tcp_socket name_connect; [ httpd_can_network_relay ]:True
+allow httpd_t http_port_t:tcp_socket name_connect; [ httpd_graceful_shutdown ]:True
+allow httpd_t http_port_t:udp_socket name_bind;
+allow httpd_t port_type:tcp_socket name_connect; [ httpd_can_network_connect ]:True
+allow httpd_t port_type:tcp_socket { recv_msg send_msg };
+allow httpd_t port_type:udp_socket { recv_msg send_msg };
+allow nsswitch_domain port_type:tcp_socket { recv_msg send_msg }; [ nis_enabled ]:True
+allow nsswitch_domain port_type:udp_socket recv_msg; [ nis_enabled ]:True
+allow nsswitch_domain port_type:udp_socket send_msg; [ nis_enabled ]:True
+allow nsswitch_domain reserved_port_type:tcp_socket name_connect; [ nis_enabled ]:True
+						</script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h1 style="text-transform: none;">Allowing</h1>
+					</section>
+					<section>
+						Use semanage
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+				# semanage port -a -t http_port_t -p tcp 8181
+							</script></code></pre>
+						
+
+					</section>
+					<section>
+						Use audit2alow and semodule
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+# ausearch -x /usr/bin/passwd --raw | audit2allow -D -M my-nginx
+# semodule -X 300 -i my-passwd.pp
+							</script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2 style="text-transform: none;">Container Scenarios</h2>
+					</section>
+					<section>
+						Create a NGINX container
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+			# podman run --rm -it --name my-nginx -p 9090:80 -d nginx
+						</script></code></pre>
+					</section>
+					<section>
+						<p>Create a NGINX container</p>
+						<p>With config and html mount</p>
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template"># podman run --rm -it --name my-nginx -p 9090:80 -v $(pwd)/config.d:/etc/nginx/conf.d $(pwd)/public_html:/usr/share/nginx/html nginx
+						</script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h1 style="text-transform: none;">Labeling</h1>
+					</section>
+					<section>
+						Add a file context
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+	# semanage fcontext -a -t httpd_sys_content_t "/html(/.*)?"
+							</script></code></pre>
+						Apply a file context
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+									# restorecon -R -v /html
+							</script></code></pre>
+					</section>
+					<section>
+						Label dirs
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+									/etc/selinux/targeted/cotexts
+							</script></code></pre>
+					</section>
+					<section>
+						Copy file context
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+	# semanage fcontext -a -e /html /usr/share/nginx/html
+							</script></code></pre>
+						Apply a file context
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+									# restorecon -R -v /html
+							</script></code></pre>
+					</section>
+					<section>
+						Check if Labels match the context
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+									# matchpathcon -V /var/www/html/*
+							</script></code></pre>
+						Restore file context labels
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+									# restorecon -R -v /html
+							</script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2 style="text-transform: none;">SELinux policies for containers</h2>
+					</section>
+					<section>
+						<a href="https://github.com/containers/udica" target="_blank">UDICA</a>
+
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+					# podman inspect 37a3635afb8f > container.json
+					# udica -j container.json  my_container
+							</script></code></pre>
+					</section>
+					<section>
+						Apply policies.
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+# semodule -i my_container.cil /usr/share/udica/templates/{base_container.cil,net_container.cil,home_container.cil}
+# podman run --security-opt label=type:my_container.process -v /home:/home:ro -v /var/spool:/var/spool:rw -p 21:21 -it fedora bash
+							</script></code></pre>
+					</section>
+				</section>
+				<section>
+					<h2>Gracias</h2>
+				</section>
 			</div>
 		</div>
 
