@@ -411,6 +411,13 @@ httpd_use_sasl                 (off  ,  off)  Allow httpd to use sasl
 httpd_verify_dns               (off  ,  off)  Allow httpd to verify dns
 						</script></code></pre>
 					</section>
+					<section>
+						<pre data-id="code-animation">
+							<code class="language-shell" data-line-numbers="|4-14|9">
+							<script type="text/template">
+						setsebool -P httpd_can_network_connect on
+						</script></code></pre>
+					</section>
 				</section>
 				<section>
 					<section>
@@ -596,6 +603,8 @@ allow nsswitch_domain reserved_port_type:tcp_socket name_connect; [ nis_enabled 
 						<pre data-id="code-animation"><code class="language-shell">
 							<script type="text/template">
 				# semanage port -a -t http_port_t -p tcp 8181
+				# semanage port -m -t http_port_t -p tcp 8181
+				# semanage port -d -t http_port_t -p tcp 8181
 							</script></code></pre>
 						
 
@@ -624,13 +633,20 @@ allow nsswitch_domain reserved_port_type:tcp_socket name_connect; [ nis_enabled 
 						<p>Create a NGINX container</p>
 						<p>With config and html mount</p>
 						<pre data-id="code-animation"><code class="language-shell">
-							<script type="text/template"># podman run --rm -it --name my-nginx -p 9090:80 -v $(pwd)/config.d:/etc/nginx/conf.d $(pwd)/public_html:/usr/share/nginx/html nginx
+							<script type="text/template"># podman run --rm -it --name my-nginx -p 9090:80 -v $(pwd)/config.d:/etc/nginx/conf.d -v $(pwd)/public_html:/usr/share/nginx/html nginx
 						</script></code></pre>
 					</section>
 				</section>
 				<section>
 					<section>
 						<h1 style="text-transform: none;">Labeling</h1>
+					</section>
+					<section>
+						Use chcon
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+# chcon -u system_u -r object_r -t httpd_sys_content_t /html/index.html
+							</script></code></pre>
 					</section>
 					<section>
 						Add a file context
@@ -642,13 +658,6 @@ allow nsswitch_domain reserved_port_type:tcp_socket name_connect; [ nis_enabled 
 						<pre data-id="code-animation"><code class="language-shell">
 							<script type="text/template">
 									# restorecon -R -v /html
-							</script></code></pre>
-					</section>
-					<section>
-						Label dirs
-						<pre data-id="code-animation"><code class="language-shell">
-							<script type="text/template">
-									/etc/selinux/targeted/cotexts
 							</script></code></pre>
 					</section>
 					<section>
@@ -673,6 +682,13 @@ allow nsswitch_domain reserved_port_type:tcp_socket name_connect; [ nis_enabled 
 						<pre data-id="code-animation"><code class="language-shell">
 							<script type="text/template">
 									# restorecon -R -v /html
+							</script></code></pre>
+					</section>
+					<section>
+						Label dirs
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+								less /etc/selinux/targeted/contexts/files/file_contexts
 							</script></code></pre>
 					</section>
 				</section>
