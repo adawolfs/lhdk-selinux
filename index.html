@@ -184,7 +184,8 @@ $  tail -f /var/log/nginx/error.log
 							</span>
 						</p>
 						<p class="fragment">
-							Deja de desactivarlo!
+							<del>Deja de desactivarlo!</del> <br>
+							Configuralo de forma practica.
 						</p>
 					</section>
 					<section>
@@ -355,6 +356,48 @@ pegasus_https_port_t           tcp      5989
 $ id -Z
 unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
 					    </script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h1 style="text-transform: none;">Policies</h1>
+					</section>
+					<section>
+						<pre data-id="code-animation">
+							<code class="language-shell">
+							<script type="text/template"># sesearch -A | wc -l
+112758</script></code></pre>
+					</section>
+					<section>
+						<pre data-id="code-animation">
+							<code class="language-shell">
+							<script type="text/template"># sesearch -A | head -n 10
+allow NetworkManager_etc_rw_t NetworkManager_etc_rw_t:filesystem associate;
+allow NetworkManager_etc_t NetworkManager_etc_t:filesystem associate;
+allow NetworkManager_exec_t NetworkManager_exec_t:filesystem associate;
+allow NetworkManager_initrc_exec_t NetworkManager_initrc_exec_t:filesystem associate;
+allow NetworkManager_log_t NetworkManager_log_t:filesystem associate;
+allow NetworkManager_log_t tmp_t:filesystem associate;
+allow NetworkManager_log_t tmpfs_t:filesystem associate;
+allow NetworkManager_priv_helper_exec_t NetworkManager_priv_helper_exec_t:filesystem associate;
+allow NetworkManager_priv_helper_t NetworkManager_priv_helper_exec_t:file { entrypoint execute getattr ioctl lock map open read };
+allow NetworkManager_priv_helper_t NetworkManager_priv_helper_t:association sendto;</script></code></pre>
+					</section>
+					<section>
+						<pre data-id="code-animation">
+							<code class="language-shell">
+							<script type="text/template"># sesearch -A | head -n 10
+# sesearch -A | tail -n 10
+allow zos_remote_t zos_remote_t:tcp_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write };
+allow zos_remote_t zos_remote_t:tcp_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write }; [ authlogin_nsswitch_use_ldap ]:True
+allow zos_remote_t zos_remote_t:tcp_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write }; [ kerberos_enabled ]:True
+allow zos_remote_t zos_remote_t:udp_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write };
+allow zos_remote_t zos_remote_t:udp_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write }; [ kerberos_enabled ]:True
+allow zos_remote_t zos_remote_t:udp_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write }; [ nis_enabled ]:True
+allow zos_remote_t zos_remote_t:unix_dgram_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write };
+allow zos_remote_t zos_remote_t:unix_stream_socket { accept append bind connect create getattr getopt ioctl listen lock read setattr setopt shutdown write };
+allow zos_remote_t zos_remote_t:unix_stream_socket { accept append bind connect create getattr getopt ioctl listen lock read setattr setopt shutdown write }; [ nscd_use_shm ]:True
+allow zos_remote_t zos_remote_t:unix_stream_socket { accept append bind connect create getattr getopt ioctl listen lock read setattr setopt shutdown write }; [ nscd_use_shm ]:True</script></code></pre>
 					</section>
 				</section>
 				<section>
@@ -618,25 +661,7 @@ allow nsswitch_domain reserved_port_type:tcp_socket name_connect; [ nis_enabled 
 							</script></code></pre>
 					</section>
 				</section>
-				<section>
-					<section>
-						<h2 style="text-transform: none;">Container Scenarios</h2>
-					</section>
-					<section>
-						Create a NGINX container
-						<pre data-id="code-animation"><code class="language-shell">
-							<script type="text/template">
-			# podman run --rm -it --name my-nginx -p 9090:80 -d nginx
-						</script></code></pre>
-					</section>
-					<section>
-						<p>Create a NGINX container</p>
-						<p>With config and html mount</p>
-						<pre data-id="code-animation"><code class="language-shell">
-							<script type="text/template"># podman run --rm -it --name my-nginx -p 9090:80 -v $(pwd)/config.d:/etc/nginx/conf.d -v $(pwd)/public_html:/usr/share/nginx/html nginx
-						</script></code></pre>
-					</section>
-				</section>
+				
 				<section>
 					<section>
 						<h1 style="text-transform: none;">Labeling</h1>
@@ -645,6 +670,7 @@ allow nsswitch_domain reserved_port_type:tcp_socket name_connect; [ nis_enabled 
 						Use chcon
 						<pre data-id="code-animation"><code class="language-shell">
 							<script type="text/template">
+# ## Temporal
 # chcon -u system_u -r object_r -t httpd_sys_content_t /html/index.html
 							</script></code></pre>
 					</section>
@@ -690,6 +716,25 @@ allow nsswitch_domain reserved_port_type:tcp_socket name_connect; [ nis_enabled 
 							<script type="text/template">
 								less /etc/selinux/targeted/contexts/files/file_contexts
 							</script></code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2 style="text-transform: none;">Container Scenarios</h2>
+					</section>
+					<section>
+						Create a NGINX container
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template">
+			# podman run --rm -it --name my-nginx -p 9090:80 -d nginx
+						</script></code></pre>
+					</section>
+					<section>
+						<p>Create a NGINX container</p>
+						<p>With config and html mount</p>
+						<pre data-id="code-animation"><code class="language-shell">
+							<script type="text/template"># podman run --rm -it --name my-nginx -p 9090:80 -v $(pwd)/config.d:/etc/nginx/conf.d -v $(pwd)/public_html:/usr/share/nginx/html nginx
+						</script></code></pre>
 					</section>
 				</section>
 				<section>
